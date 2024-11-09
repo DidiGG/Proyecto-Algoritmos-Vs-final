@@ -69,17 +69,19 @@ category_counts = {category: defaultdict(int) for category in categories_keyword
 for abstract in data["Abstract"].dropna().str.lower():
     words = re.findall(r'\b\w+\b', abstract)  # Extraer todas las palabras
 
-   # Recorrer cada categoría y sus palabras clave
-for category, keywords_list in categories_keywords.items():
-    for term in keywords_list:
-        # Contar cuántas veces aparece el término
-        term_count = words.count(term)
-        if term_count > 0:
-            category_counts[category][term] += term_count
+    # Recorrer cada categoría y sus palabras clave
+    for category, keywords_list in categories_keywords.items():
+        for term in keywords_list:
+            # Contar cuántas veces aparece el término
+            term_count = words.count(term)
+            if term_count > 0:
+                category_counts[category][term] += term_count
 
-
-# Mostrar resultados de conteo por categoría y término
+# Imprimir los resultados de conteo
 for category, terms in category_counts.items():
     print(f"\n{category}:")
-    for term, count in terms.items():
-        print(f"  {term}: {count}")
+    if not terms:  # Si no hay términos contados, imprimir un mensaje
+        print("  No terms found.")
+    else:
+        for term, count in terms.items():
+            print(f"  {term}: {count}")

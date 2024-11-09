@@ -1,6 +1,5 @@
 import pandas as pd
-from collections import Counter
-import matplotlib.pyplot as plt
+from collections import defaultdict
 import re
 
 # Ruta del archivo CSV limpio
@@ -19,144 +18,68 @@ data = pd.read_csv(file_path)
 # Definir palabras clave para cada categoría
 categories_keywords = {
     "Habilidades": [
-        "abstraction",
-        "algorithm",
-        "algorithmic thinking",
-        "coding",
-        "collaboration",
-        "cooperation",
-        "creativity",
-        "critical thinking",
-        "debug",
-        "decomposition",
-        "evaluation",
-        "generalization",
-        "logic",
-        "logical thinking",
-        "modularity",
-        "pattern recognition",
-        "problem solving",
-        "programming",
-        "representation",
-        "reuse",
-        "simulation",
+        "abstraction", "algorithm", "algorithmic thinking", "coding", "collaboration", "cooperation",
+        "creativity", "critical thinking", "debug", "decomposition", "evaluation", "generalization",
+        "logic", "logical thinking", "modularity", "pattern recognition", "problem solving", "programming",
+        "representation", "reuse", "simulation",
     ],
     "Conceptos Computacionales": [
-        "conditionals",
-        "control structures",
-        "directions",
-        "events",
-        "functions",
-        "loops",
-        "modular structure",
-        "parallelism",
-        "sequences",
-        "software",
-        "hardware",
-        "variables",
+        "conditionals", "control structures", "directions", "events", "functions", "loops", "modular structure",
+        "parallelism", "sequences", "software", "hardware", "variables",
     ],
     "Actitudes": [
-        "emotional",
-        "engagement",
-        "motivation",
-        "perceptions",
-        "persistence",
-        "self-efficacy",
-        "self-perceived",
+        "emotional", "engagement", "motivation", "perceptions", "persistence", "self-efficacy", "self-perceived",
     ],
     "Propiedades Psicométricas": [
-        "classical test theory",
-        "confirmatory factor analysis",
-        "exploratory factor analysis",
-        "item response theory",
-        "reliability",
-        "structural equation model",
-        "validity",
+        "classical test theory", "confirmatory factor analysis", "exploratory factor analysis", "item response theory",
+        "reliability", "structural equation model", "validity",
     ],
     "Herramienta de Evaluación": [
-        "bctt",
-        "escas",
-        "cctt",
-        "ctst",
-        "cta-ces",
-        "ctc",
-        "ctls",
-        "cts",
-        "ctt-es",
-        "ctt-lp",
-        "capct",
-        "ict competency test",
-        "general self-efficacy scale",
-        "stem-las",
+        "bctt", "escas", "cctt", "ctst", "cta-ces", "ctc", "ctls", "cts", "ctt-es", "ctt-lp", "capct", "ict competency test",
+        "general self-efficacy scale", "stem-las",
     ],
     "Diseño de Investigación": [
-        "experimental",
-        "longitudinal research",
-        "mixed methods",
-        "post-test",
-        "pre-test",
-        "quasi-experiments",
+        "experimental", "longitudinal research", "mixed methods", "post-test", "pre-test", "quasi-experiments",
         "non-experimental",
     ],
     "Nivel de Escolaridad": [
-        "upper elementary education",
-        "primary school",
-        "early childhood education",
-        "secondary school",
-        "high school",
-        "university",
-        "college",
+        "upper elementary education", "primary school", "early childhood education", "secondary school", "high school",
+        "university", "college",
     ],
     "Medio": [
-        "block programming",
-        "mobile application",
-        "pair programming",
-        "plugged activities",
-        "programming",
-        "robotics",
-        "spreadsheet",
-        "stem",
-        "unplugged activities",
+        "block programming", "mobile application", "pair programming", "plugged activities", "programming", "robotics",
+        "spreadsheet", "stem", "unplugged activities",
     ],
     "Estrategia": [
-        "construct-by-self mind mapping",
-        "design-based learning",
-        "gamification",
-        "reverse engineering",
-        "technology-enhanced learning",
-        "collaborative learning",
-        "cooperative learning",
-        "flipped classroom",
-        "game-based learning",
-        "inquiry-based learning",
-        "personalized learning",
-        "problem-based learning",
-        "project-based learning",
-        "universal design for learning",
+        "construct-by-self mind mapping", "design-based learning", "gamification", "reverse engineering", "technology-enhanced learning",
+        "collaborative learning", "cooperative learning", "flipped classroom", "game-based learning", "inquiry-based learning",
+        "personalized learning", "problem-based learning", "project-based learning", "universal design for learning",
+    ],
+    "Herramienta": [
+        "Alice", "Arduino", "Scratch", "ScratchJr", "Blockly Games", "Code.org", "Codecombat", "CSUnplugged", "Robot Turtles",
+        "Hello Ruby", "Kodable", "LightbotJr", "KIBO robots", "BEE BOT", "CUBETTO", "Minecraft", "Agent Sheets", "Mimo",
+        "Py–Learn", "SpaceChem",
     ],
 }
 
-# Inicializar el conteo de cada categoría
-category_counts = {category: 0 for category in categories_keywords.keys()}
+# Inicializar diccionario para guardar conteos de términos por categoría
+category_counts = {category: defaultdict(int) for category in categories_keywords.keys()}
 
 # Procesar cada abstract para clasificarlo en las categorías
-for abstract in data["Abstract"].dropna().str.lower():  # Ignorar valores nulos
-    # Dividir en palabras y filtrar por cada categoría
-    words = re.findall(r"\b\w+\b", abstract)  # Lista de palabras individuales
-    for category, keywords in categories_keywords.items():
-        # Contar cuántas palabras clave de cada categoría aparecen en el abstract
-        if any(keyword in words for keyword in keywords):
-            category_counts[category] += 1
+for abstract in data["Abstract"].dropna().str.lower():
+    words = re.findall(r'\b\w+\b', abstract)  # Extraer todas las palabras
 
-# Mostrar el conteo por categoría
-print("Conteo de artículos por categoría:", category_counts)
+   # Recorrer cada categoría y sus palabras clave
+for category, keywords_list in categories_keywords.items():
+    for term in keywords_list:
+        # Contar cuántas veces aparece el término
+        term_count = words.count(term)
+        if term_count > 0:
+            category_counts[category][term] += term_count
 
-# Generar gráfico de barras
-plt.figure(figsize=(10, 6))
-plt.bar(category_counts.keys(), category_counts.values(), color="skyblue")
-plt.xlabel("Categorías")
-plt.ylabel("Número de artículos")
-plt.title("Distribución de artículos por categorías de palabras clave")
-plt.xticks(rotation=45, ha="right")
-plt.tight_layout()
-plt.show()
+
+# Mostrar resultados de conteo por categoría y término
+for category, terms in category_counts.items():
+    print(f"\n{category}:")
+    for term, count in terms.items():
+        print(f"  {term}: {count}")

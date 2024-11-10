@@ -5,6 +5,15 @@ import nltk
 from nltk.corpus import wordnet
 from tqdm import tqdm  # Para mostrar progreso
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from collections import defaultdict
+import re, string
+import nltk
+from nltk.corpus import wordnet
+from tqdm import tqdm
+
 # Descargar WordNet
 print("Descargando WordNet...")
 nltk.download("wordnet", quiet=True)
@@ -241,3 +250,24 @@ for category, terms in category_counts.items():
             is_synonym = term not in categories_keywords[category]
             prefix = "-" if is_synonym else " "
             print(f"  {prefix}{term}: {count}")
+
+# Crear DataFrame para el gráfico
+data_for_plot = []
+for category, term_counts in category_counts.items():
+    for term, count in term_counts.items():
+        data_for_plot.append([category, term, count])
+
+df_plot = pd.DataFrame(data_for_plot, columns=['Categoría', 'Término', 'Conteo'])
+
+# Pivotar los datos para el gráfico apilado
+df_plot_pivoted = df_plot.pivot_table(index='Término', columns='Categoría', values='Conteo', fill_value=0)
+
+# Crear el gráfico de barras apiladas
+df_plot_pivoted.plot(kind='bar', stacked=True, figsize=(15, 8))
+plt.title('Frecuencia de términos por categoría')
+plt.xlabel('Término')
+plt.ylabel('Conteo')
+plt.xticks(rotation=90, fontsize=5)
+plt.legend(loc='upper right')
+plt.tight_layout()
+plt.show()

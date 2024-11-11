@@ -10,9 +10,9 @@ csv_url = "https://raw.githubusercontent.com/DidiGG/Proyecto-Algoritmos-Vs-final
 df = pd.read_csv(csv_url)
 
 # Columnas a usar
-journal_column = "Publication Title"  # Ajusta según corresponda en el CSV
+journal_column = "Publication Title"  
 citation_column = "Article Citation Count"
-country_column = "Country"  # Asignaremos valores aleatorios para esta columna
+country_column = "Country" 
 
 # Identificar los 10 journals con mayor cantidad de artículos publicados
 top_journals = df[journal_column].value_counts().nlargest(10).index

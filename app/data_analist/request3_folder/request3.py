@@ -1,20 +1,29 @@
 import pandas as pd
 from collections import defaultdict
 import re, string
+import nltk
+from nltk.corpus import wordnet
+from tqdm import tqdm  # Para mostrar progreso
 
-# Ruta del archivo CSV limpio
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from collections import defaultdict
+import re, string
+import nltk
+from nltk.corpus import wordnet
+from tqdm import tqdm
+
+# Descargar WordNet
+print("Descargando WordNet...")
+nltk.download("wordnet", quiet=True)
+
+# Ruta del archivo CSV
 archivo_csv = "https://raw.githubusercontent.com/DidiGG/Proyecto-Algoritmos-Vs-final/refs/heads/main/data/final_csv/bases_unificadas_ok.csv"
 
 # Cargar el archivo CSV
+print("Cargando datos...")
 df = pd.read_csv(archivo_csv)
-
-# Mostrar las primeras filas para asegurarnos de que las columnas son correctas
-print("Primeras filas del archivo CSV:")
-print(df.head())
-
-# Cargar la base de datos
-file_path = archivo_csv
-data = pd.read_csv(file_path)
 
 # Definir palabras clave para cada categoría
 categories_keywords = {
@@ -61,8 +70,8 @@ categories_keywords = {
         "motivation",
         "perceptions",
         "persistence",
-        "self-efficacy",
-        "self-perceived",
+        "self efficacy",
+        "self perceived",
     ],
     "Propiedades Psicométricas": [
         "classical test theory",
@@ -85,9 +94,10 @@ categories_keywords = {
         "ctt-es",
         "ctt-lp",
         "capct",
-        "ict competency test",
-        "general self-efficacy scale",
-        "stem-las",
+        "ict",
+        "competency test",
+        "self-efficacy scale",
+        "stem las",
     ],
     "Diseño de Investigación": [
         "experimental",
@@ -96,7 +106,7 @@ categories_keywords = {
         "post-test",
         "pre-test",
         "quasi-experiments",
-        "non-experimental",
+        "no experimental",
     ],
     "Nivel de Escolaridad": [
         "upper elementary education",
@@ -158,56 +168,106 @@ categories_keywords = {
     ],
 }
 
-# Inicializar diccionario para guardar conteos de términos por categoría
-category_counts = {
-    category: defaultdict(int) for category in categories_keywords.keys()
-}
+
+def obtener_sinonimos(palabra):
+    """Obtiene sinónimos de una palabra usando WordNet"""
+    sinonimos = set()
+    # Si la palabra tiene espacios, no buscar sinónimos
+    if " " in palabra:
+        return [palabra]
+
+    for syn in wordnet.synsets(palabra):
+        for lemma in syn.lemmas():
+            # Agregar solo si no es la misma palabra
+            if lemma.name().lower() != palabra.lower():
+                sinonimos.add(lemma.name().lower())
+    return list(sinonimos)
 
 
-# Función para limpiar y normalizar el texto
 def clean_text(text):
-    # Convertir a minúsculas
+    """Limpia y normaliza el texto"""
+    if not isinstance(text, str):
+        return ""
     text = text.lower()
-
-    # Eliminar puntuación (se conserva solo alfabéticos y espacios)
-    text = re.sub(f"[{string.punctuation}]", "", text)
-
-    # Eliminar números si no son relevantes
+    text = re.sub(f"[{string.punctuation}]", " ", text)
     text = re.sub(r"\d+", "", text)
-
-    # Eliminar espacios en blanco adicionales
     text = re.sub(r"\s+", " ", text).strip()
-
     return text
 
 
-# Función para buscar de manera más flexible (tolerante a variaciones de formato)
-def find_term_in_text(text, term):
-    pattern = re.compile(r"\b" + re.escape(term) + r"\b", re.IGNORECASE)
-    return len(re.findall(pattern, text))
+# Expandir keywords con sinónimos y crear nuevo diccionario
+print("\nProcesando palabras clave y sus sinónimos...")
+expanded_categories_keywords = {}
 
+for categoria, palabras in categories_keywords.items():
+    print(f"\nCategoría: {categoria}")
+    expanded_palabras = []
 
-# Procesar cada abstract para clasificarlo en las categorías
-for abstract in data["Abstract"].dropna():
-    abstract_cleaned = clean_text(abstract).lower()  # Convertir a minúsculas
-    for category, keywords_list in categories_keywords.items():
+    for palabra in palabras:
+        expanded_palabras.append(palabra)  # Agregar palabra original
+        sinonimos = obtener_sinonimos(palabra)
+
+        # Imprimir palabra original y sus sinónimos
+        print(f"\n{palabra}:")
+        if sinonimos:
+            for sinonimo in sinonimos:
+                print(f"  -{sinonimo}")
+                expanded_palabras.append(sinonimo)
+        else:
+            print("  No se encontraron sinónimos")
+
+    expanded_categories_keywords[categoria] = expanded_palabras
+
+# Inicializar conteos
+category_counts = {
+    category: defaultdict(int) for category in expanded_categories_keywords.keys()
+}
+
+# Procesar abstracts
+print("\nAnalizando abstracts...")
+for abstract in tqdm(df["Abstract"].dropna()):
+    abstract_cleaned = clean_text(abstract)
+
+    for category, keywords_list in expanded_categories_keywords.items():
         for term in keywords_list:
-            term_lower = term.lower()
-
-    # Recorrer cada categoría y sus palabras clave
-    for category, keywords_list in categories_keywords.items():
-        for term in keywords_list:
-            # Buscar cuántas veces aparece el término de manera más flexible
-            term_count = find_term_in_text(abstract_cleaned, term)
+            # Buscar el término como palabra completa
+            term_pattern = r"\b" + re.escape(term.lower()) + r"\b"
+            term_count = len(re.findall(term_pattern, abstract_cleaned))
             if term_count > 0:
                 category_counts[category][term] += term_count
 
-# Imprimir los resultados de conteo
+# Imprimir resultados finales
 print("\nResultados de conteo por categoría y término:")
 for category, terms in category_counts.items():
     print(f"\n{category}:")
-    if not terms:  # Si no hay términos contados, imprimir un mensaje
+    if not terms:
         print("  No terms found.")
     else:
-        for term, count in terms.items():
-            print(f"  {term}: {count}")
+        # Ordenar términos por conteo
+        sorted_terms = sorted(terms.items(), key=lambda x: x[1], reverse=True)
+        for term, count in sorted_terms:
+            # Identificar si es sinónimo (no está en la lista original)
+            is_synonym = term not in categories_keywords[category]
+            prefix = "-" if is_synonym else " "
+            print(f"  {prefix}{term}: {count}")
+
+# Crear DataFrame para el gráfico
+data_for_plot = []
+for category, term_counts in category_counts.items():
+    for term, count in term_counts.items():
+        data_for_plot.append([category, term, count])
+
+df_plot = pd.DataFrame(data_for_plot, columns=['Categoría', 'Término', 'Conteo'])
+
+# Pivotar los datos para el gráfico apilado
+df_plot_pivoted = df_plot.pivot_table(index='Término', columns='Categoría', values='Conteo', fill_value=0)
+
+# Crear el gráfico de barras apiladas
+df_plot_pivoted.plot(kind='bar', stacked=True, figsize=(15, 8))
+plt.title('Frecuencia de términos por categoría')
+plt.xlabel('Término')
+plt.ylabel('Conteo')
+plt.xticks(rotation=90, fontsize=5)
+plt.legend(loc='upper right')
+plt.tight_layout()
+plt.show()
